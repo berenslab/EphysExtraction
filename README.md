@@ -2,6 +2,7 @@
 Code to extract electrophysiological parameters of neurons. Code is continuously being updated to handle more kinds of voltage traces.
 
 Development by: Yves Bernaerts (main)
+
 Supervisor: Philipp Berens
 
 
