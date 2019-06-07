@@ -651,7 +651,7 @@ def find_widths_wrt_threshold(v, t, spike_indexes, peak_indexes, trough_indexes,
     return widths  
 
 def analyze_trough_details(v, t, spike_indexes, peak_indexes, clipped=None, end=None, filter=10.,
-                           heavy_filter=1., term_frac=0.01, adp_thresh=0.5, tol=0.5,
+                           heavy_filter=1., term_frac=0.003, adp_thresh=0.5, tol=0.5,
                            flat_interval=0.002, adp_max_delta_t=0.01, adp_max_delta_v=10., dvdt=None):
     """Analyze trough to determine if an ADP exists and whether the reset is a 'detour' or 'direct'
 
@@ -706,6 +706,7 @@ def analyze_trough_details(v, t, spike_indexes, peak_indexes, clipped=None, end=
 
     update_clipped = []
     for peak, next_spk in zip(valid_peak_indexes, np.append(valid_spike_indexes[1:], end_index)):
+        
         downstroke = dvdt[peak:next_spk].argmin() + peak
         target = term_frac * dvdt[downstroke]
 
@@ -938,6 +939,15 @@ def norm_sq_diff(a):
     a = a.astype(float)
     norm_sq_diffs = np.square((a[1:] - a[:-1])) / np.square((a[1:] + a[:-1]))
     return norm_sq_diffs.mean()
+
+def isis_change(a):
+    """Calculate average of (a[1:]/a[:-1])."""
+    if len(a) <= 1:
+        return np.nan
+    
+    a = a.astype(float)
+    isis_changes = a[1:] / a[:-1]
+    return isis_changes.mean()
 
 
 def has_fixed_dt(t):

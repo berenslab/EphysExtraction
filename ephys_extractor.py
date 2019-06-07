@@ -280,10 +280,16 @@ class EphysSweepFeatureExtractor:
                 "mean_isi": isis.mean() if len(isis) > 0 else np.nan,
                 "median_isi": np.median(isis),
                 "first_isi": isis[0] if len(isis) >= 1 else np.nan,
-                # We want at least 3 peaks to calculate the adaptation index (given in percentage)
-                "adaptation_index": (isis[1]/isis[0])*100 if len(isis) >=3 else np.nan,
-                "avg_rate": ft.average_rate(t, thresholds, self.start, self.end),
-            }
+                # We want at least 3 peaks (i.e. 2 isis) to calculate the adaptation index (given in percentage)
+                "adaptation_index": (isis[1]/isis[0])*100 if len(isis) >= 2 else np.nan,
+                "isis_change": ft.isis_change(isis) if len(isis) >= 2 else np.nan,
+                "norm_sq_isis": ft.norm_sq_diff(isis) if len(isis) >= 2 else np.nan,
+                # You could in principle make the Fano factor and cv 0 for n = 1 ISI, but we choose to make them Nan, i.e. they
+                # are not that informative here
+                "fano_factor": ((isis.std()**2) / isis.mean()) if len(isis) > 1 else np.nan,
+                "cv": (isis.std() / isis.mean()) if len(isis) > 1 else np.nan,
+                "avg_rate": ft.average_rate(t, thresholds, self.start, self.end)
+                        }
 
         for k, v in six.iteritems(sweep_level_features):
             self._sweep_features[k] = v
