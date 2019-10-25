@@ -932,7 +932,7 @@ def norm_diff(a):
 
 
 def norm_sq_diff(a):
-    """Calculate average of (a[i] - a[i+1])^2 / (a[i] + a[i+1])^2."""
+    """Calculate average of (a[i+1] - a[i])^2 / (a[i] + a[i+1])^2."""
     if len(a) <= 1:
         return np.nan
 
@@ -948,6 +948,15 @@ def isis_change(a):
     a = a.astype(float)
     isis_changes = a[1:] / a[:-1]
     return isis_changes.mean()
+
+def ap_amp_change(a):
+    """Calculate average of (a[1:]/a[:-1])."""
+    if len(a) <= 1:
+        return np.nan
+    
+    a = a.astype(float)
+    ap_amp_changes = a[1:] / a[:-1]
+    return ap_amp_changes.mean()
 
 
 def has_fixed_dt(t):
@@ -1135,6 +1144,7 @@ def detect_bursts(isis, isi_types, fast_tr_v, fast_tr_t, slow_tr_v, slow_tr_t,
     # Burst transitions can't be at "pause"-like ISIs
     pauses = detect_pauses(isis, isi_types, cost_weight=pause_cost).astype(int)
     isi_types[pauses] = "pauselike"
+    
 
     if not (np.any(isi_types == "direct") and np.any(isi_types == "detour")):
         # no candidates that could be bursts
@@ -1142,19 +1152,27 @@ def detect_bursts(isis, isi_types, fast_tr_v, fast_tr_t, slow_tr_v, slow_tr_t,
 
     # Want to catch special case of detour in the middle of a large burst where
     # the slow trough value is higher than the previous spike's threshold
-    isi_types[(thr_v[:-1] < (slow_tr_v + tol)) & (isi_types == "detour")] = "midburst"
-
-    # Find transitions from direct -> detour and vice versa for burst boundaries
+    
+    # WHERE IS THIS EVER USED????? --> prints warnings too
+    # isi_types[(thr_v[:-1] < (slow_tr_v + tol)) & (isi_types == "detour")] = "midburst"
+    
+    
+    #print(isi_types)
+    # Find transitions from detour -> direct and vice versa for burst boundaries
     into_burst = np.array([i + 1 for i, (prev, cur) in
                  enumerate(zip(isi_types[:-1], isi_types[1:])) if
                  cur == "direct" and prev == "detour"],
                  dtype=int)
     if isi_types[0] == "direct":
+        #print('We"re going directly in a burst')
         into_burst = np.append(np.array([0]), into_burst)
 
+    #print(into_burst)
+    
     drop_into = []
     out_of_burst = []
     for j, (into, next) in enumerate(zip(into_burst, np.append(into_burst[1:], len(isis)))):
+        #print('j: ', j, 'into: ', into, 'next: ', next)
         for i, isi in enumerate(isi_types[into + 1:next]):
             if isi == "detour":
                 out_of_burst.append(i + into + 1)
@@ -1162,6 +1180,9 @@ def detect_bursts(isis, isi_types, fast_tr_v, fast_tr_t, slow_tr_v, slow_tr_t,
             elif isi == "pauselike":
                 drop_into.append(j)
                 break
+                
+    # Burst transitions can't be at pauselike transitions ==> delete here
+    
     mask = np.ones_like(into_burst, dtype=bool)
     mask[drop_into] = False
     into_burst = into_burst[mask]
@@ -1169,20 +1190,30 @@ def detect_bursts(isis, isi_types, fast_tr_v, fast_tr_t, slow_tr_v, slow_tr_t,
     out_of_burst = np.array(out_of_burst)
     if len(out_of_burst) == len(into_burst) - 1:
         out_of_burst = np.append(out_of_burst, len(isi_types))
-
+    #print('into_burst: ', into_burst)
+    #print('out_of_burst: ', out_of_burst)
+    
     if not (into_burst.size or out_of_burst.size):
         return np.array([])
 
     if len(into_burst) != len(out_of_burst):
         raise FeatureError("Inconsistent burst boundary identification")
 
-    inout_pairs = zip(into_burst, out_of_burst)
+    inout_pairs = list(zip(into_burst, out_of_burst))
+    #print('into_burst: ', into_burst)
+    #print('out_of_burst: ', out_of_burst)
     delta_t = slow_tr_t - fast_tr_t
+    
+    #print('delta_t: ', delta_t)
 
-    scores = _score_burst_set(list(inout_pairs), isis, delta_t)
+    scores = _score_burst_set(inout_pairs, isis, delta_t)
+    #print('scores: ', scores)
     best_score = np.mean(scores)
+    #print('best score: ', best_score)
     worst = np.argmin(scores)
-    test_bursts = list(inout_pairs)
+    #print('index of worst score: ', worst)
+    test_bursts = inout_pairs
+    #print(test_bursts)
     del test_bursts[worst]
     while len(test_bursts) > 0:
         scores = _score_burst_set(test_bursts, isis, delta_t)
@@ -1207,7 +1238,7 @@ def detect_bursts(isis, isi_types, fast_tr_v, fast_tr_t, slow_tr_v, slow_tr_t,
             else:
                 prev_burst = inout_pairs[i - 1]
                 metric = _burstiness_index(isis[into:outof], isis[prev_burst[1]:into])
-        else:
+        else: # So normally, we calculate a burst metric with the isis in and out (out is to the next burst!) of the burst
             next_burst = inout_pairs[i + 1]
             metric = _burstiness_index(isis[into:outof], isis[outof:next_burst[0]])
         bursts.append((metric, into, outof))
@@ -1356,7 +1387,7 @@ def estimate_adjusted_detection_parameters(v_set, t_set, interval_start, interva
 def _score_burst_set(bursts, isis, delta_t, c_n=0.1, c_tx=0.01):
     in_burst = np.zeros_like(isis, dtype=bool)
     for b in bursts:
-        in_burst[b[0]:b[1]] = True
+        in_burst[int(b[0]):int(b[1])] = True
 
     # If all ISIs are part of a burst, give it a bad score
     if len(isis[~in_burst]) == 0:
@@ -1366,11 +1397,11 @@ def _score_burst_set(bursts, isis, delta_t, c_n=0.1, c_tx=0.01):
 
     scores = []
     for b in bursts:
-        score = _burstiness_index(isis[b[0]:b[1]], isis[~in_burst]) # base score
+        score = _burstiness_index(isis[int(b[0]):int(b[1])], isis[~in_burst]) # base score
         if b[1] < len(delta_t):
-            score -= c_tx * (1. / (delta_frac[b[1]])) # cost for ending a burst
+            score -= c_tx * (1. / (delta_frac[int(b[1])])) # cost for ending a burst
         if b[0] > 0:
-            score -= c_tx * (1. / delta_frac[b[0] - 1]) # cost for starting a burst
+            score -= c_tx * (1. / delta_frac[int(b[0]) - 1]) # cost for starting a burst
         score -= c_n * (b[1] - b[0] - 1) # cost for extending a burst
         scores.append(score)
 

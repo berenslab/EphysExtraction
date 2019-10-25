@@ -266,7 +266,15 @@ class EphysSweepFeatureExtractor:
         if len(self._spikes_df) == 0:
             self._sweep_features["avg_rate"] = 0
             return
-
+        
+        
+        
+        # Start recently added
+        peak_heights = None
+        if not self._spikes_df.empty:
+            peak_heights = self._spikes_df['peak_v'].values - self._spikes_df['threshold_v'].values
+        # End recently added
+        
         thresholds = self._spikes_df["threshold_index"].values.astype(int)
         isis = ft.get_isis(t, thresholds)
         with warnings.catch_warnings():
@@ -282,6 +290,15 @@ class EphysSweepFeatureExtractor:
                 "first_isi": isis[0] if len(isis) >= 1 else np.nan,
                 # We want at least 3 peaks (i.e. 2 isis) to calculate the adaptation index (given in percentage)
                 "adaptation_index": (isis[1]/isis[0])*100 if len(isis) >= 2 else np.nan,
+                
+                # Start recently added
+                #"AP_amp_adapt": self._spikes_df['peak_height'][1]/self._spikes_df['peak_height'][0] if self._spikes_df.shape[1] >= 2 else np.nan,
+                "AP_amp_adapt": (peak_heights[1]/peak_heights[0]) if peak_heights.size >= 2 else np.nan,
+                #"AP_amp_change": ft.ap_amp_change(self._spikes_df['peak_height'].values) if self._spikes_df.shape.shape[1] >= 2 else np.nan,
+                "AP_amp_change": ft.ap_amp_change(peak_heights) if peak_heights.size >= 2 else np.nan,
+                # End recently added
+                "AP_fano_factor": ((peak_heights.std()**2)/peak_heights.mean()) if peak_heights.size >=2 else np.nan,
+                "AP_cv": ((peak_heights.std())/peak_heights.mean()) if peak_heights.size >=2 else np.nan,
                 "isis_change": ft.isis_change(isis) if len(isis) >= 2 else np.nan,
                 "norm_sq_isis": ft.norm_sq_diff(isis) if len(isis) >= 2 else np.nan,
                 # You could in principle make the Fano factor and cv 0 for n = 1 ISI, but we choose to make them Nan, i.e. they
