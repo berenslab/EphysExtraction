@@ -940,7 +940,7 @@ def norm_sq_diff(a):
     norm_sq_diffs = np.square((a[1:] - a[:-1])) / np.square((a[1:] + a[:-1]))
     return norm_sq_diffs.mean()
 
-def isis_change(a):
+def isi_adaptation(a):
     """Calculate average of (a[1:]/a[:-1])."""
     if len(a) <= 1:
         return np.nan
@@ -949,7 +949,7 @@ def isis_change(a):
     isis_changes = a[1:] / a[:-1]
     return isis_changes.mean()
 
-def ap_amp_change(a):
+def ap_amp_adaptation(a):
     """Calculate average of (a[1:]/a[:-1])."""
     if len(a) <= 1:
         return np.nan
@@ -996,7 +996,10 @@ def fit_membrane_time_constant(v, t, start, end, min_rsme=1e-4):
         return np.nan, np.nan, np.nan
 
     pred = _exp_curve(t_window, *popt)
-    rsme = np.sqrt(np.mean(pred - v_window))
+    #print('pred: ', pred)
+    #print('voltage: ', v_window)
+    #print('mean difference: ', np.mean(pred - v_window))
+    rsme = np.sqrt(np.abs(np.mean(pred - v_window)))
     if rsme > min_rsme:
         logging.debug("Curve fit for membrane time constant did not meet RSME standard")
         return np.nan, np.nan, np.nan
@@ -1073,6 +1076,7 @@ def detect_pauses(isis, isi_types, cost_weight=1.0):
     median_direct = np.median(isis[isi_types == "direct"])
     direct_candidates = [i for i, isi_type in enumerate(isi_types) if isi_type == "direct" and isis[i] > 3 * median_direct]
     candidates = detour_candidates + direct_candidates
+    #print('pause candidates: ', candidates)
 
     if not candidates:
         return np.array([])
@@ -1088,11 +1092,21 @@ def detect_pauses(isis, isi_types, cost_weight=1.0):
             break
         cv = non_pause_isis.std() / non_pause_isis.mean()
         benefit = all_cv - cv
-        cost = np.sum(non_pause_isis.std() / np.abs(non_pause_isis.mean() - pause_isis))
+        #print('benefit: ', benefit)
+        #print('cause of warning? (=0?): ', np.abs(non_pause_isis.mean() - pause_isis)[np.abs(non_pause_isis.mean() - pause_isis)==0])
+        if (0 in np.abs(non_pause_isis.mean() - pause_isis)):
+            #print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            cost = 1000 # just a huge cost
+        else:
+            cost = np.sum(non_pause_isis.std() / np.abs(non_pause_isis.mean() - pause_isis))
+        #print('cost: ', cost)
         cost *= cost_weight
         net = benefit - cost
         if net > 0 and net < best_net:
             break
+        #print('net: ', net)
+        #print('best_net: ', best_net)
+        #print(net > best_net)
         if net > best_net:
             best_net = net
         pause_list = np.append(pause_list, i)
@@ -1140,7 +1154,9 @@ def detect_bursts(isis, isi_types, fast_tr_v, fast_tr_t, slow_tr_v, slow_tr_t,
     slow_tr_t = slow_tr_t[:-1]
 
     isi_types = np.array(isi_types) # don't want to change the actual isi types data
-
+    #print(isi_types)
+    
+    
     # Burst transitions can't be at "pause"-like ISIs
     pauses = detect_pauses(isis, isi_types, cost_weight=pause_cost).astype(int)
     isi_types[pauses] = "pauselike"
@@ -1207,13 +1223,13 @@ def detect_bursts(isis, isi_types, fast_tr_v, fast_tr_t, slow_tr_v, slow_tr_t,
     #print('delta_t: ', delta_t)
 
     scores = _score_burst_set(inout_pairs, isis, delta_t)
-    #print('scores: ', scores)
+    #print('Initial scores: ', scores)
     best_score = np.mean(scores)
     #print('best score: ', best_score)
     worst = np.argmin(scores)
     #print('index of worst score: ', worst)
     test_bursts = inout_pairs
-    #print(test_bursts)
+    #print('test_bursts: ', test_bursts)
     del test_bursts[worst]
     while len(test_bursts) > 0:
         scores = _score_burst_set(test_bursts, isis, delta_t)
@@ -1224,7 +1240,8 @@ def detect_bursts(isis, isi_types, fast_tr_v, fast_tr_t, slow_tr_v, slow_tr_t,
             del test_bursts[worst]
         else:
             break
-
+    
+    #print('best score: ', best_score)
     if best_score < 0:
         return np.array([])
 

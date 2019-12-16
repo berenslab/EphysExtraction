@@ -289,20 +289,22 @@ class EphysSweepFeatureExtractor:
                 "median_isi": np.median(isis),
                 "first_isi": isis[0] if len(isis) >= 1 else np.nan,
                 # We want at least 3 peaks (i.e. 2 isis) to calculate the adaptation index (given in percentage)
-                "adaptation_index": (isis[1]/isis[0])*100 if len(isis) >= 2 else np.nan,
+                "isi_adapt": (isis[1]/isis[0]) if len(isis) >= 2 else np.nan,
                 
                 # Start recently added
                 #"AP_amp_adapt": self._spikes_df['peak_height'][1]/self._spikes_df['peak_height'][0] if self._spikes_df.shape[1] >= 2 else np.nan,
                 "AP_amp_adapt": (peak_heights[1]/peak_heights[0]) if peak_heights.size >= 2 else np.nan,
                 #"AP_amp_change": ft.ap_amp_change(self._spikes_df['peak_height'].values) if self._spikes_df.shape.shape[1] >= 2 else np.nan,
-                "AP_amp_change": ft.ap_amp_change(peak_heights) if peak_heights.size >= 2 else np.nan,
+                "AP_amp_adapt_average": ft.ap_amp_adaptation(peak_heights) if peak_heights.size >= 2 else np.nan,
                 # End recently added
                 "AP_fano_factor": ((peak_heights.std()**2)/peak_heights.mean()) if peak_heights.size >=2 else np.nan,
+                
                 "AP_cv": ((peak_heights.std())/peak_heights.mean()) if peak_heights.size >=2 else np.nan,
-                "isis_change": ft.isis_change(isis) if len(isis) >= 2 else np.nan,
-                "norm_sq_isis": ft.norm_sq_diff(isis) if len(isis) >= 2 else np.nan,
+                "isi_adapt_average": ft.isi_adaptation(isis) if len(isis) >= 2 else np.nan,
+                #"norm_sq_isis": ft.norm_sq_diff(isis) if len(isis) >= 2 else np.nan,
                 # You could in principle make the Fano factor and cv 0 for n = 1 ISI, but we choose to make them Nan, i.e. they
                 # are not that informative here
+                
                 "fano_factor": ((isis.std()**2) / isis.mean()) if len(isis) > 1 else np.nan,
                 "cv": (isis.std() / isis.mean()) if len(isis) > 1 else np.nan,
                 "avg_rate": ft.average_rate(t, thresholds, self.start, self.end)
