@@ -14,7 +14,9 @@ Script ephys_extractor.py creates an object corresponding to one neuron/cell and
 The following jupyter notebooks are created to transform data given in a certain format to raw voltage traces. Electrophysiological features are extracted by calling to the two previously mentioned scrips and sanity checks are available by plotting the extracted information.
 
 
-GetFeaturesPipeline.ipynb is finetuned to work with data from M1 (in collaboration with Andreas Tolias' lab (Houston))
+GetFeaturesPipeline.ipynb is finetuned to work with data from mini-atlas mouse motor cortex M1 (in collaboration with Andreas Tolias' lab (Houston)). It is advised to have a look at this pipeline when you consider to work with your own data.
+
+Relatively outdated pipelines:
 GetFeaturesPipeline2.ipynb is finetuned to work with data from Hippocampus (in collaboration with Xiaolong's lab (Houston))
 GetFeaturesPipelineL4.ipynb is finetuned to work with data from layer 4 (V1 and S1) (in collaboration with Andreas Tolias' lab (Houston))
 GetFeaturesPipelineL4Neurolucida.ipynb is finetuned to work with data from layer 4 V1 (in collaboration with Andreas Tolias' lab (Houston))
