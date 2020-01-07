@@ -22,3 +22,12 @@ GetFeaturesPipelineL4.ipynb is finetuned to work with data from layer 4 (V1 and 
 GetFeaturesPipelineL4Neurolucida.ipynb is finetuned to work with data from layer 4 V1 (in collaboration with Andreas Tolias' lab (Houston))
 
 Once can ask for permission to work with this data by contacting yves.bernaerts@uni-tuebingen.de
+
+## Installation
+
+In developer mode:
+```shell script
+git clone pip install git+https://github.com/berenslab/EphysExtraction
+cd EphysExtraction
+pip install -e .
+```
