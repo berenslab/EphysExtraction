@@ -21,7 +21,7 @@ GetFeaturesPipeline2.ipynb is finetuned to work with data from Hippocampus (in c
 GetFeaturesPipelineL4.ipynb is finetuned to work with data from layer 4 (V1 and S1) (in collaboration with Andreas Tolias' lab (Houston))
 GetFeaturesPipelineL4Neurolucida.ipynb is finetuned to work with data from layer 4 V1 (in collaboration with Andreas Tolias' lab (Houston))
 
-Once can ask for permission to work with this data by contacting yves.bernaerts@uni-tuebingen.de
+One can ask for permission to work with this data by contacting yves.bernaerts@uni-tuebingen.de
 
 ## Installation
 
