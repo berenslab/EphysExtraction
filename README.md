@@ -11,7 +11,7 @@ Script ephys_features.py contains basic functions to work with the raw voltage t
 Script ephys_extractor.py creates an object corresponding to one neuron/cell and extracts the electrophysiological properties based on features calculated by functions in extract_cell_features.py. This is also based on Allen Institute code available on GitHub but modified too.
 
 
-The following jupyter notebooks are created to transform data given in a certain format to raw voltage traces. Electrophysiological features are extracted by calling to the two previously mentioned scrips and sanity checks are available by plotting the extracted information.
+The following jupyter notebooks are created to transform data given in a certain format to raw voltage traces. Electrophysiological features are extracted by calling to the two previously mentioned scripts and sanity checks are available by plotting the extracted information.
 
 
 GetFeaturesPipeline.ipynb is finetuned to work with data from mini-atlas mouse motor cortex M1 (in collaboration with Andreas Tolias' lab (Houston)). It is advised to have a look at this pipeline when you consider to work with your own data.
