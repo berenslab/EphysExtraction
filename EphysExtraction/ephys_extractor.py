@@ -39,7 +39,7 @@ import warnings
 import logging
 from collections import Counter
 
-import EphysExtraction.ephys_features as ft
+import ephys_features as ft
 import six
 
 # Constants for stimulus-specific analysis
@@ -189,14 +189,14 @@ class EphysSweepFeatureExtractor:
             spikes_df[k + "_v"] = np.nan
 
             if len(vals) > 0:
-                spikes_df.ix[valid_ind, k + "_index"] = vals
-                spikes_df.ix[valid_ind, k + "_t"] = t[vals]
-                spikes_df.ix[valid_ind, k + "_v"] = v[vals]
+                spikes_df.loc[valid_ind, k + "_index"] = vals
+                spikes_df.loc[valid_ind, k + "_t"] = t[vals]
+                spikes_df.loc[valid_ind, k + "_v"] = v[vals]
 
             if self.i is not None:
                 spikes_df[k + "_i"] = np.nan
                 if len(vals) > 0:
-                    spikes_df.ix[valid_ind, k + "_i"] = self.i[vals]
+                    spikes_df.loc[valid_ind, k + "_i"] = self.i[vals]
 
             if k in base_clipped_list:
                 self._affected_by_clipping += [
@@ -212,10 +212,10 @@ class EphysSweepFeatureExtractor:
             spikes_df[k + "_index"] = np.nan
             spikes_df[k] = np.nan
             if len(vals) > 0:
-                spikes_df.ix[valid_ind, k + "_index"] = vals
-                spikes_df.ix[valid_ind, k + "_t"] = t[vals]
-                spikes_df.ix[valid_ind, k + "_v"] = v[vals]
-                spikes_df.ix[valid_ind, k] = dvdt[vals]
+                spikes_df.loc[valid_ind, k + "_index"] = vals
+                spikes_df.loc[valid_ind, k + "_t"] = t[vals]
+                spikes_df.loc[valid_ind, k + "_v"] = v[vals]
+                spikes_df.loc[valid_ind, k] = dvdt[vals]
 
                 if k in base_clipped_list:
                     self._affected_by_clipping += [
@@ -235,14 +235,14 @@ class EphysSweepFeatureExtractor:
             spikes_df[k + "_t"] = np.nan
             spikes_df[k + "_v"] = np.nan
             if len(vals) > 0:
-                spikes_df.ix[valid_ind, k + "_index"] = vals
-                spikes_df.ix[valid_ind, k + "_t"] = t[vals]
-                spikes_df.ix[valid_ind, k + "_v"] = v[vals]
+                spikes_df.loc[valid_ind, k + "_index"] = vals
+                spikes_df.loc[valid_ind, k + "_t"] = t[vals]
+                spikes_df.loc[valid_ind, k + "_v"] = v[vals]
 
             if self.i is not None:
                 spikes_df[k + "_i"] = np.nan
                 if len(vals) > 0:
-                    spikes_df.ix[valid_ind, k + "_i"] = self.i[vals]
+                    spikes_df.loc[valid_ind, k + "_i"] = self.i[vals]
 
             if k in base_clipped_list:
                 self._affected_by_clipping += [
@@ -454,7 +454,9 @@ class EphysSweepFeatureExtractor:
             start = 0
         start_index = ft.find_time_index(self.t, start)
 
-        end = self.end
+        end = self.end - 0.1  # Let us add -0.1 because we don't expect to find a trough that close to the end of current stimulation
+                              # This actually helps us ignore cases where the voltage acts funny (i.e. drops mistakenly taken as trough)
+                              # right at current stimulation end.
         if not end:
             end = self.t[-1]
         end_index = ft.find_time_index(self.t, end)
@@ -571,8 +573,8 @@ class EphysSweepFeatureExtractor:
         start = self.start
         if not start:
             start = 0
-
-        end = self.end
+        
+        end = self.end      # To calculate the steady state, not the peak deflection (see code below)
         if not end:
             end = self.t[-1]
 
@@ -587,12 +589,19 @@ class EphysSweepFeatureExtractor:
             # A spike should only last about a couple of milliseconds, so let's look a bit before the 'spike'
             peak_index = peak_index - (ft.find_time_index(t, 0.12) - ft.find_time_index(t, 0.1))
         
+        #print(t[peak_index])
         v_peak_avg = ft.average_voltage(v, t, start=t[peak_index] - peak_width / 2.,
                                       end=t[peak_index] + peak_width / 2.)
         v_baseline = self.sweep_feature("v_baseline")
         v_steady = ft.average_voltage(v, t, start=end - self.baseline_interval, end=end)
+        #print('v_stead: ', v_steady)
+        #print('v_baseline: ', v_baseline)
+        #print('v_peak_avg: ', v_peak_avg)
+        #print('denominater=v_stead-v_baseline: ', v_steady-v_baseline)
+        #print('numerator=v_peak_avg-v_baseline: ', v_peak_avg-v_baseline)
         sag = (v_peak_avg - v_steady) / (v_peak_avg - v_baseline)
         sag_ratio = (v_peak_avg - v_baseline)/(v_steady-v_baseline)
+        #print(sag_ratio)
         return sag, sag_ratio
 
     def spikes(self):
